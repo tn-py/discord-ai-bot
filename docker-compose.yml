@@ -1,9 +1,9 @@
-version: '3.8'
-
 services:
   discord-bot:
     build:
       context: .
+      dockerfile: Dockerfile
+    container_name: discord-ai-bot
     ports:
       - "3005:3005"
     env_file:
