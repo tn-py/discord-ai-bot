@@ -6,14 +6,50 @@ services:
       dockerfile: Dockerfile
     container_name: discord-ai-bot
     ports:
-      - "3005:3005"
+      - "${PORT:-3005}:${PORT:-3005}"
     env_file:
       - .env
     restart: unless-stopped
     environment:
+      # Node Environment
       - NODE_ENV=production
+      
+      # Discord Configuration
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
+      
+      # OpenAI Configuration
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_ASSISTANT_ID=${OPENAI_ASSISTANT_ID}
+      
+      # Google Gemini Configuration
       - GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY}
+      
+      # Weather API Configuration
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      
+      # Application Configuration
+      - PORT=${PORT:-3005}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FILE_PATH=/usr/src/app/logs
+      
+      # Cache Configuration
+      - CACHE_TTL=${CACHE_TTL:-3600}
+      - WEATHER_CACHE_TTL=${WEATHER_CACHE_TTL:-1800}
+      
+      # Rate Limiting Configuration
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60000}
+      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-5}
+    volumes:
+      - ./logs:/usr/src/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "node", "./healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
