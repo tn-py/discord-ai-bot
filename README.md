@@ -1,10 +1,11 @@
-# Discord AI Bot
+# GiGi Discord AI Assistant
 
-This bot integrates with the Discord API and provides three main functionalities:
+This bot integrates with the Discord API and provides the following functionalities:
 
-1. **Image Generation** using OpenAI and Google Generative AI.
-2. **AI Chatbot** powered by OpenAI.
-3. **Weather Forecast** using OpenWeather and Open-Meteo APIs.
+1. **Always-on AI Assistant "GiGi"** that responds when called by name
+2. **Image Generation** using OpenAI and Google Generative AI
+3. **AI Chatbot** powered by OpenAI
+4. **Weather Forecast** using OpenWeather and Open-Meteo APIs
 
 ---
 
@@ -14,6 +15,7 @@ This bot integrates with the Discord API and provides three main functionalities
 - Docker Compose
 - Discord Bot Token
 - OpenAI API Key
+- OpenAI Assistant ID
 - Google Generative AI API Key
 - OpenWeather API Key
 
@@ -23,9 +25,39 @@ Ensure you have a `.env` file in the root directory with the following variables
 DISCORD_BOT_TOKEN=your_discord_bot_token
 DISCORD_GUILD_ID=your_discord_guild_id
 OPENAI_API_KEY=your_openai_api_key
+OPENAI_ASSISTANT_ID=your_openai_assistant_id
 GOOGLE_GEMINI_API_KEY=your_google_gemini_api_key
 OPENWEATHER_API_KEY=your_openweather_api_key
 ```
+
+---
+
+## **Features**
+
+### **GiGi AI Assistant**
+
+GiGi is an always-listening AI assistant that responds when users mention its name:
+
+- Processes all chat messages through Google's Gemini 2.5 Flash
+- Activates when users mention "GiGi" in any message
+- Primary response engine is an OpenAI Assistant
+- Falls back to Gemini if OpenAI cannot be reached
+- No commands needed - just chat naturally and mention "GiGi"
+
+Examples:
+- "Hey GiGi, what's the weather like today?"
+- "I wonder if GiGi knows the answer to this question?"
+- "GiGi can you help me with my homework?"
+
+### **Other Bot Commands**
+
+The bot also provides traditional slash commands for specific functions:
+
+| Command      | Description                          |
+|--------------|--------------------------------------|
+| /imagine     | Generate an image using AI           |
+| /chat        | Start a conversation with the AI     |
+| /weather     | Get the weather forecast for a location |
 
 ---
 
@@ -62,17 +94,7 @@ Then run the following command to build and start the container:
 docker-compose up --build
 ```
 
-The bot will log in to your Discord server and register slash commands.
-
----
-
-## **Slash Commands**
-
-| Command      | Description                          |
-|--------------|--------------------------------------|
-| /imagine     | Generate an image using AI           |
-| /guaro-chat  | Start a conversation with the AI     |
-| /weather     | Get the weather forecast for a location |
+The bot will log in to your Discord server, register slash commands, and begin listening for messages that mention GiGi.
 
 ---
 
@@ -89,12 +111,23 @@ Ensure your `.env` file is in place with the correct credentials.
 
 ---
 
+## **OpenAI Assistant Setup**
+
+To use GiGi with an OpenAI Assistant:
+
+1. Create an Assistant at [OpenAI](https://platform.openai.com/assistants)
+2. Get your Assistant ID from the Assistant details page
+3. Add the Assistant ID to your `.env` file as `OPENAI_ASSISTANT_ID`
+
+---
+
 ## **Troubleshooting**
 
 ### **Common Errors**
 
 - **401 Unauthorized Error**: Make sure your API keys in the `.env` file are correct.
 - **Bot Not Responding**: Ensure the bot is added to your Discord server and has the required permissions.
+- **GiGi Not Responding**: Check that your `OPENAI_ASSISTANT_ID` is correct and that you've mentioned "GiGi" in your message.
 
 ### **Check Logs**
 
@@ -109,4 +142,3 @@ docker logs discord-ai-bot
 ## **License**
 
 This project is licensed under the MIT License. Feel free to use and modify the code.
-
