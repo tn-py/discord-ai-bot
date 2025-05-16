@@ -16,13 +16,6 @@ const config = {
       model: 'gpt-3.5-turbo',
       maxTokens: 1024,
       timeout: 30000 // 30 seconds
-    },
-    gemini: {
-      apiKey: process.env.GOOGLE_GEMINI_API_KEY,
-      model: 'gemini-2.5-flash-preview-04-17',
-      temperature: 0.7,
-      initialPrompt: "You are an AI assistant named GiGi. Only respond if someone specifically calls you by your name 'GiGi'. Otherwise, remain silent and do not generate any response. If someone uses your name, acknowledge them and provide helpful responses.",
-      fallbackPrompt: "You are a helpful assistant named GiGi."
     }
   },
   weather: {

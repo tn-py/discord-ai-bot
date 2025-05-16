@@ -1,12 +1,21 @@
 const logger = require('../utils/logger');
 const chatCommand = require('../commands/chat');
 const openaiService = require('../services/openai');
-const geminiService = require('../services/gemini');
 const { handleMessageError } = require('../utils/errors');
 
 module.exports = {
   name: 'messageCreate',
   
+  /**
+   * Check if message contains the bot's name (GiGi)
+   * @param {string} content - Message content
+   * @returns {boolean}
+   */
+  isGiGiMentioned(content) {
+    const botNameRegex = /GiGi/i; // Case-insensitive match for "GiGi"
+    return botNameRegex.test(content);
+  },
+
   /**
    * Handle message create events
    * @param {Message} message - Discord message
@@ -29,14 +38,14 @@ module.exports = {
         return;
       }
 
-      // Check if message activates GiGi
-      if (geminiService.isActivated(message.content)) {
-        logger.debug('GiGi activation detected', {
+      // Check if message mentions GiGi
+      if (this.isGiGiMentioned(message.content)) {
+        logger.debug('GiGi mention detected', {
           userId: message.author.id
         });
 
         try {
-          // Try OpenAI Assistant first
+          // Process with OpenAI Assistant
           const assistantResponse = await openaiService.processMessage(
             message.author.id,
             message.content
@@ -47,35 +56,11 @@ module.exports = {
           logger.debug('OpenAI Assistant response sent', {
             userId: message.author.id
           });
-        } catch (openaiError) {
-          logger.warn('OpenAI Assistant failed, falling back to Gemini', {
-            error: openaiError.message
-          });
-
-          try {
-            // Fallback to Gemini
-            const geminiResponse = await geminiService.processWithFallback(
-              message.author.id,
-              message.content
-            );
-
-            if (geminiResponse) {
-              await message.reply(geminiResponse);
-              
-              logger.debug('Gemini fallback response sent', {
-                userId: message.author.id
-              });
-            }
-          } catch (geminiError) {
-            logger.error('Both AI services failed', {
-              openaiError: openaiError.message,
-              geminiError: geminiError.message
-            });
-
-            await message.reply(
-              'I\'m having trouble connecting to my resources right now. Please try again later.'
-            );
-          }
+        } catch (error) {
+          logger.error('OpenAI Assistant failed:', error);
+          await message.reply(
+            'I\'m having trouble connecting to my resources right now. Please try again later.'
+          );
         }
       }
     } catch (error) {

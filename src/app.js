@@ -23,15 +23,21 @@ class DiscordBot {
         'DISCORD_GUILD_ID',
         'OPENAI_API_KEY',
         'OPENAI_ASSISTANT_ID',
-        'GOOGLE_GEMINI_API_KEY',
         'OPENWEATHER_API_KEY'
       ]);
 
+      // Load commands and register them with Discord
+      const commandHandler = require('./utils/commandHandler');
+      await commandHandler.loadCommands();
+      
       // Load event handlers
       await loadEvents(this.client);
 
       // Login to Discord
       await this.client.login(process.env.DISCORD_BOT_TOKEN);
+      
+      // Register commands with the guild after login
+      await commandHandler.registerCommands(this.client, process.env.DISCORD_GUILD_ID);
       
       logger.info('Bot initialized successfully');
     } catch (error) {
