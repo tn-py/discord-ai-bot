@@ -12,7 +12,7 @@ module.exports = {
    * @returns {boolean}
    */
   isGiGiMentioned(content) {
-    const botNameRegex = /GiGi/i; // Case-insensitive match for "GiGi"
+    const botNameRegex = /GiGi/; // Exact case match for "GiGi"
     return botNameRegex.test(content);
   },
 
