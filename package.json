@@ -4,12 +4,14 @@
   "description": "A Discord bot with AI capabilities using OpenAI and Google Gemini",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node start.js",
     "dev": "nodemon index.js",
     "lint": "eslint .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "sync-commands": "node src/utils/syncCommands.js",
+    "sync-commands:global": "node src/utils/syncCommands.js --global"
   },
   "repository": {
     "type": "git",
@@ -30,7 +32,6 @@
   },
   "homepage": "https://github.com/tn-py/discord-ai-bot#readme",
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
     "axios": "^1.7.9",
     "discord.js": "^14.17.3",
     "dotenv": "^16.4.7",
