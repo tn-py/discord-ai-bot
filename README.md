@@ -3,7 +3,7 @@
 This bot integrates with the Discord API and provides the following functionalities:
 
 1. **Always-on AI Assistant "GiGi"** that responds when called by name
-2. **Image Generation** using OpenAI and Google Generative AI
+2. **Image Generation** using OpenAI
 3. **AI Chatbot** powered by OpenAI
 4. **Weather Forecast** using OpenWeather and Open-Meteo APIs
 
@@ -16,7 +16,6 @@ This bot integrates with the Discord API and provides the following functionalit
 - Discord Bot Token
 - OpenAI API Key
 - OpenAI Assistant ID
-- Google Generative AI API Key
 - OpenWeather API Key
 
 Ensure you have a `.env` file in the root directory with the following variables:
@@ -26,7 +25,6 @@ DISCORD_BOT_TOKEN=your_discord_bot_token
 DISCORD_GUILD_ID=your_discord_guild_id
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_ASSISTANT_ID=your_openai_assistant_id
-GOOGLE_GEMINI_API_KEY=your_google_gemini_api_key
 OPENWEATHER_API_KEY=your_openweather_api_key
 ```
 
@@ -38,10 +36,9 @@ OPENWEATHER_API_KEY=your_openweather_api_key
 
 GiGi is an always-listening AI assistant that responds when users mention its name:
 
-- Processes all chat messages through Google's Gemini 2.5 Flash
+- Processes all chat messages through OpenAI
 - Activates when users mention "GiGi" in any message
-- Primary response engine is an OpenAI Assistant
-- Falls back to Gemini if OpenAI cannot be reached
+- Powered by OpenAI Assistant
 - No commands needed - just chat naturally and mention "GiGi"
 
 Examples:

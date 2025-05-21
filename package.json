@@ -1,7 +1,7 @@
 {
   "name": "discord-ai-bot",
   "version": "1.0.0",
-  "description": "A Discord bot with AI capabilities using OpenAI and Google Gemini",
+  "description": "A Discord bot with AI capabilities using OpenAI",
   "main": "index.js",
   "scripts": {
     "start": "node start.js",
@@ -22,7 +22,6 @@
     "bot",
     "ai",
     "openai",
-    "gemini",
     "weather"
   ],
   "author": "",

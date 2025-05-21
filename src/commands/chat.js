@@ -1,6 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
 const openaiService = require('../services/openai');
-const geminiService = require('../services/gemini');
 const logger = require('../utils/logger');
 const { handleInteractionError } = require('../utils/errors');
 
@@ -55,8 +54,7 @@ module.exports = {
         // Create new session
         activeSessions.set(userId, {
           messages: [],
-          lastActivity: Date.now(),
-          useGemini: false // Start with OpenAI by default
+          lastActivity: Date.now()
         });
 
         await interaction.reply({
@@ -104,52 +102,24 @@ module.exports = {
       // Update last activity
       session.lastActivity = Date.now();
 
-      if (!session.useGemini) {
-        try {
-          // Try OpenAI first
-          session.messages.push({ role: 'user', content: message.content });
-          
-          const reply = await openaiService.createChatCompletion(
-            session.messages,
-            userId
-          );
-
-          session.messages.push({ role: 'assistant', content: reply });
-          await message.reply(reply);
-
-          logger.debug('OpenAI chat response sent', {
-            userId,
-            messageCount: session.messages.length
-          });
-        } catch (openaiError) {
-          logger.warn('OpenAI chat failed, switching to Gemini', {
-            error: openaiError.message
-          });
-
-          // Switch to Gemini for this session
-          session.useGemini = true;
-          session.messages = []; // Reset messages for Gemini
-
-          // Try Gemini
-          const geminiResponse = await geminiService.processMessage(
-            userId,
-            message.content
-          );
-
-          await message.reply(geminiResponse);
-
-          logger.debug('Switched to Gemini for chat session', { userId });
-        }
-      } else {
-        // Already using Gemini
-        const response = await geminiService.processMessage(
-          userId,
-          message.content
+      try {
+        session.messages.push({ role: 'user', content: message.content });
+        
+        const reply = await openaiService.createChatCompletion(
+          session.messages,
+          userId
         );
 
-        await message.reply(response);
+        session.messages.push({ role: 'assistant', content: reply });
+        await message.reply(reply);
 
-        logger.debug('Gemini chat response sent', { userId });
+        logger.debug('OpenAI chat response sent', {
+          userId,
+          messageCount: session.messages.length
+        });
+      } catch (error) {
+        logger.error('Error in chat message handling:', error);
+        await message.reply('Sorry, I encountered an error processing your message. Please try again.');
       }
     } catch (error) {
       logger.error('Error in chat message handling:', error);
