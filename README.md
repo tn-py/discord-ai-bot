@@ -55,6 +55,7 @@ The bot also provides traditional slash commands for specific functions:
 | /imagine     | Generate an image using AI           |
 | /chat        | Start a conversation with the AI     |
 | /weather     | Get the weather forecast for a location |
+| /f1 check     | Get the most recent F1 race stats |
 
 ---
 
@@ -105,6 +106,22 @@ npm run start
 ```
 
 Ensure your `.env` file is in place with the correct credentials.
+
+---
+
+## **Command Synchronization**
+
+The bot provides two ways to sync slash commands:
+
+```bash
+# Register commands for a specific server (guild)
+npm run sync-commands
+
+# Register commands globally across all servers
+npm run sync-commands:global
+```
+
+Note: Global commands can take up to 1 hour to propagate across all servers due to Discord's caching. For development and testing, use `sync-commands` for immediate updates in your test server. Once your commands are stable, use `sync-commands:global` to deploy them across all servers where your bot is present.
 
 ---
 

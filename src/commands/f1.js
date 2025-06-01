@@ -6,12 +6,50 @@ const logger = require('../utils/logger');
 const parser = new xml2js.Parser({ explicitArray: false });
 
 async function fetchF1Data() {
+    logger.info('Fetching F1 data from Ergast API...');
     try {
-        const response = await axios.get('http://ergast.com/api/f1/current/last/results');
+        const url = 'http://ergast.com/api/f1/current/last/results';
+        logger.info(`Making GET request to: ${url}`);
+        
+        const response = await axios.get(url);
+        logger.info('Successfully received API response');
+        logger.debug('API Response Status:', response.status);
+        
+        logger.info('Parsing XML response...');
         const result = await parser.parseStringPromise(response.data);
+        logger.info('Successfully parsed XML data');
+        
+        // Log race information for debugging
+        const raceName = result.MRData?.RaceTable?.Race?.RaceName;
+        const circuit = result.MRData?.RaceTable?.Race?.Circuit?.CircuitName;
+        logger.info(`Fetched data for race: ${raceName} at ${circuit}`);
+        
         return result;
     } catch (error) {
-        logger.error('Error fetching F1 data:', error);
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            logger.error('API Error Response:', {
+                status: error.response.status,
+                statusText: error.response.statusText,
+                data: error.response.data
+            });
+        } else if (error.request) {
+            // The request was made but no response was received
+            logger.error('No response received from API:', error.message);
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            logger.error('Error setting up API request:', error.message);
+        }
+        
+        if (error.config) {
+            logger.debug('Failed request config:', {
+                method: error.config.method,
+                url: error.config.url,
+                headers: error.config.headers
+            });
+        }
+        
         throw new Error('Failed to fetch F1 data. Please try again later.');
     }
 }
@@ -90,18 +128,30 @@ module.exports = {
         const type = interaction.options.getString('type');
 
         if (type === 'stats') {
+            logger.info(`User ${interaction.user.tag} requested F1 stats`);
             await interaction.deferReply();
 
             try {
+                logger.info('Fetching F1 data...');
                 const data = await fetchF1Data();
+                
+                logger.info('Formatting race data for Discord...');
                 const formattedResponse = createRaceEmbed(data);
                 
+                logger.info('Sending formatted response to Discord...');
                 await interaction.editReply({
                     content: formattedResponse,
                     allowedMentions: { parse: [] }
                 });
+                logger.info('Successfully sent F1 stats to Discord');
             } catch (error) {
-                logger.error('Error in F1 command:', error);
+                logger.error('Error in F1 command:', {
+                    error: error.message,
+                    stack: error.stack,
+                    user: interaction.user.tag,
+                    guild: interaction.guild.name
+                });
+                
                 await interaction.editReply({
                     content: '❌ Sorry, there was an error fetching F1 data. Please try again later.',
                     ephemeral: true
