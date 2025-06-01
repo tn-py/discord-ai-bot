@@ -89,7 +89,7 @@ function createRaceEmbed(data) {
     results.forEach(result => {
         const driverName = `${result.Driver.GivenName} ${result.Driver.FamilyName}`.padEnd(20);
         const timeStatus = (result.Time ? result.Time._ : result.Status).padEnd(18);
-        const points = result.points.padStart(3);
+        const points = (result.points || '0').toString().padStart(3);
         
         fullResults += `${result.position.padStart(2)}   ${driverName} ${timeStatus} ${points}\n`;
     });
