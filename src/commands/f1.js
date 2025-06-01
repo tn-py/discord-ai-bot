@@ -12,42 +12,48 @@ async function fetchF1Data() {
         logger.info(`Making GET request to: ${url}`);
         
         const response = await axios.get(url);
-        logger.info('Successfully received API response');
-        logger.debug('API Response Status:', response.status);
+        logger.info(`Successfully received API response with status: ${response.status}`);
+        
+        // Log a sample of the response data for debugging
+        const responsePreview = response.data.substring(0, 200) + '...';
+        logger.debug('Response data preview:', { data: responsePreview });
         
         logger.info('Parsing XML response...');
         const result = await parser.parseStringPromise(response.data);
         logger.info('Successfully parsed XML data');
         
+        // Validate the parsed data structure
+        if (!result?.MRData?.RaceTable?.Race) {
+            throw new Error('Invalid data structure in API response');
+        }
+        
         // Log race information for debugging
-        const raceName = result.MRData?.RaceTable?.Race?.RaceName;
-        const circuit = result.MRData?.RaceTable?.Race?.Circuit?.CircuitName;
-        logger.info(`Fetched data for race: ${raceName} at ${circuit}`);
+        const raceName = result.MRData.RaceTable.Race.RaceName;
+        const circuit = result.MRData.RaceTable.Race.Circuit.CircuitName;
+        const date = result.MRData.RaceTable.Race.Date;
+        logger.info('Fetched race data:', {
+            raceName,
+            circuit,
+            date,
+            resultCount: result.MRData.RaceTable.Race.ResultsList.Result.length
+        });
         
         return result;
     } catch (error) {
-        if (error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx
-            logger.error('API Error Response:', {
-                status: error.response.status,
-                statusText: error.response.statusText,
-                data: error.response.data
-            });
-        } else if (error.request) {
-            // The request was made but no response was received
-            logger.error('No response received from API:', error.message);
-        } else {
-            // Something happened in setting up the request that triggered an Error
-            logger.error('Error setting up API request:', error.message);
-        }
+        // Use the logger's error helper for comprehensive error logging
+        logger.logError(error, {
+            context: 'F1 API Request',
+            url: 'http://ergast.com/api/f1/current/last/results',
+            timestamp: new Date().toISOString()
+        });
         
-        if (error.config) {
-            logger.debug('Failed request config:', {
-                method: error.config.method,
-                url: error.config.url,
-                headers: error.config.headers
-            });
+        // Throw a more specific error if we can determine the cause
+        if (error.response?.status === 429) {
+            throw new Error('F1 API rate limit exceeded. Please try again in a few minutes.');
+        } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            throw new Error('Unable to connect to F1 API. The service may be down.');
+        } else if (error.message === 'Invalid data structure in API response') {
+            throw new Error('Received unexpected data format from F1 API.');
         }
         
         throw new Error('Failed to fetch F1 data. Please try again later.');
@@ -128,7 +134,15 @@ module.exports = {
         const type = interaction.options.getString('type');
 
         if (type === 'stats') {
-            logger.info(`User ${interaction.user.tag} requested F1 stats`);
+            const commandStart = Date.now();
+            logger.info('F1 stats command initiated:', {
+                user: interaction.user.tag,
+                userId: interaction.user.id,
+                guild: interaction.guild.name,
+                guildId: interaction.guild.id,
+                timestamp: new Date().toISOString()
+            });
+
             await interaction.deferReply();
 
             try {
@@ -143,17 +157,37 @@ module.exports = {
                     content: formattedResponse,
                     allowedMentions: { parse: [] }
                 });
-                logger.info('Successfully sent F1 stats to Discord');
-            } catch (error) {
-                logger.error('Error in F1 command:', {
-                    error: error.message,
-                    stack: error.stack,
+
+                const executionTime = Date.now() - commandStart;
+                logger.info('F1 stats command completed successfully', {
+                    executionTime: `${executionTime}ms`,
                     user: interaction.user.tag,
                     guild: interaction.guild.name
                 });
+            } catch (error) {
+                const executionTime = Date.now() - commandStart;
+                logger.logError(error, {
+                    context: 'F1 Command Execution',
+                    user: interaction.user.tag,
+                    userId: interaction.user.id,
+                    guild: interaction.guild.name,
+                    guildId: interaction.guild.id,
+                    executionTime: `${executionTime}ms`,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Send a more specific error message to the user if possible
+                let errorMessage = '❌ Sorry, there was an error fetching F1 data. Please try again later.';
+                if (error.message.includes('rate limit')) {
+                    errorMessage = '❌ The F1 API is currently rate limited. Please try again in a few minutes.';
+                } else if (error.message.includes('Unable to connect')) {
+                    errorMessage = '❌ Unable to connect to the F1 API. The service may be down.';
+                } else if (error.message.includes('unexpected data format')) {
+                    errorMessage = '❌ Received unexpected data from the F1 API. This might be a temporary issue.';
+                }
                 
                 await interaction.editReply({
-                    content: '❌ Sorry, there was an error fetching F1 data. Please try again later.',
+                    content: errorMessage,
                     ephemeral: true
                 });
             }

@@ -21,31 +21,28 @@ const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
   format: customFormat,
   transports: [
+    // Always log to console for Docker/Coolify visibility
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    }),
     // Write all logs with importance level of 'error' or less to error.log
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(logDir, 'error.log'),
       level: 'error',
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),
     // Write all logs with importance level of 'info' or less to combined.log
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(logDir, 'combined.log'),
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     })
   ]
 });
-
-// If we're not in production, log to the console with colored output
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
-}
 
 // Create error logging helper
 logger.logError = (error, context = {}) => {
