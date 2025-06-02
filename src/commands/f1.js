@@ -106,18 +106,25 @@ function createRaceEmbed(data) {
         if (result.Time?._) {
             // For finished drivers with time
             timeStatus = result.Time._.includes('+') ? result.Time._ : result.Time._.split('.')[0];
-        } else if (typeof result.Status === 'string' && result.Status.includes('Lap')) {
+        } else if (result.Status?._ === 'Finished') {
+            timeStatus = result.Time?._ || 'Finished';
+        } else if (result.Status?.includes && result.Status.includes('Lap')) {
             // For lapped drivers
             timeStatus = result.Status;
+        } else if (result.Status?._) {
+            // For special statuses like Engine, Collision, etc.
+            timeStatus = result.Status._;
         } else {
-            // For retired or other status
+            // Fallback for any other status
             timeStatus = result.Status || 'N/A';
         }
         
-        const points = (result.points || '0').toString().padStart(3);
-        const position = (result.positionText || result.position || '-').toString().padStart(2);
+        // Get points and position from result attributes
+        const points = result.$.points || '0';
+        const position = result.$.positionText || result.$.position || '-';
         
-        fullResults += `${position}   ${driverName} ${String(timeStatus).padEnd(18)} ${points}\n`;
+        // Format the line with proper padding
+        fullResults += `${position.toString().padStart(2)}   ${driverName} ${String(timeStatus).padEnd(18)} ${points.toString().padStart(3)}\n`;
     });
     fullResults += '```\n';
 
