@@ -118,7 +118,7 @@ function createRaceEmbed(data) {
     };
 
     // Create full results table
-    let fullResults = '\n📊 **Full Results**\n```\nPos  Flag Driver                  Time/Status          Points\n';
+    let fullResults = '\n📊 **Full Results**\n```\nPos  Nat. Driver                  Time/Status          Points\n';
     fullResults += '────────────────────────────────────────────────────────────\n';
     
     results.forEach(result => {
