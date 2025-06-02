@@ -117,7 +117,7 @@ function createRaceEmbed(data) {
         const points = (result.points || '0').toString().padStart(3);
         const position = (result.positionText || result.position || '-').toString().padStart(2);
         
-        fullResults += `${position}   ${driverName} ${timeStatus.padEnd(18)} ${points}\n`;
+        fullResults += `${position}   ${driverName} ${String(timeStatus).padEnd(18)} ${points}\n`;
     });
     fullResults += '```\n';
 
