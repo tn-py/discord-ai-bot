@@ -94,9 +94,32 @@ function createRaceEmbed(data) {
         podium += `${i + 1}. ${driverName} (${constructor}) - ${time}\n`;
     }
 
+    // Create nationality to flag emoji mapping
+    const nationalityToFlag = {
+        'British': '🇬🇧',
+        'Spanish': '🇪🇸',
+        'Monegasque': '🇲🇨',
+        'Dutch': '🇳🇱',
+        'French': '🇫🇷',
+        'German': '🇩🇪',
+        'Australian': '🇦🇺',
+        'Thai': '🇹🇭',
+        'Japanese': '🇯🇵',
+        'Chinese': '🇨🇳',
+        'Canadian': '🇨🇦',
+        'Danish': '🇩🇰',
+        'Finnish': '🇫🇮',
+        'Mexican': '🇲🇽',
+        'Italian': '🇮🇹',
+        'American': '🇺🇸',
+        'Swiss': '🇨🇭',
+        'New Zealander': '🇳🇿',
+        'Argentinian': '🇦🇷'
+    };
+
     // Create full results table
-    let fullResults = '\n📊 **Full Results**\n```\nPos  Driver                  Time/Status          Points\n';
-    fullResults += '──────────────────────────────────────────────────────\n';
+    let fullResults = '\n📊 **Full Results**\n```\nPos  Flag Driver                  Time/Status          Points\n';
+    fullResults += '────────────────────────────────────────────────────────────\n';
     
     results.forEach(result => {
         const driverName = `${result.Driver?.GivenName || ''} ${result.Driver?.FamilyName || ''}`.trim().padEnd(20);
@@ -123,8 +146,12 @@ function createRaceEmbed(data) {
         const points = result.$.points || '0';
         const position = result.$.positionText || result.$.position || '-';
         
+        // Get nationality and corresponding flag
+        const nationality = result.Driver?.Nationality || '';
+        const flag = nationalityToFlag[nationality] || '🏳️';
+
         // Format the line with proper padding
-        fullResults += `${position.toString().padStart(2)}   ${driverName} ${String(timeStatus).padEnd(18)} ${points.toString().padStart(3)}\n`;
+        fullResults += `${position.toString().padStart(2)}   ${flag}  ${driverName} ${String(timeStatus).padEnd(18)} ${points.toString().padStart(3)}\n`;
     });
     fullResults += '```\n';
 
