@@ -106,7 +106,7 @@ function createRaceEmbed(data) {
         if (result.Time?._) {
             // For finished drivers with time
             timeStatus = result.Time._.includes('+') ? result.Time._ : result.Time._.split('.')[0];
-        } else if (result.Status?.includes('Lap')) {
+        } else if (typeof result.Status === 'string' && result.Status.includes('Lap')) {
             // For lapped drivers
             timeStatus = result.Status;
         } else {
