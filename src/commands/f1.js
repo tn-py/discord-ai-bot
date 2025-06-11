@@ -12,42 +12,48 @@ async function fetchF1Data() {
         logger.info(`Making GET request to: ${url}`);
         
         const response = await axios.get(url);
-        logger.info('Successfully received API response');
-        logger.debug('API Response Status:', response.status);
+        logger.info(`Successfully received API response with status: ${response.status}`);
+        
+        // Log a sample of the response data for debugging
+        const responsePreview = response.data.substring(0, 200) + '...';
+        logger.debug('Response data preview:', { data: responsePreview });
         
         logger.info('Parsing XML response...');
         const result = await parser.parseStringPromise(response.data);
         logger.info('Successfully parsed XML data');
         
+        // Validate the parsed data structure
+        if (!result?.MRData?.RaceTable?.Race) {
+            throw new Error('Invalid data structure in API response');
+        }
+        
         // Log race information for debugging
-        const raceName = result.MRData?.RaceTable?.Race?.RaceName;
-        const circuit = result.MRData?.RaceTable?.Race?.Circuit?.CircuitName;
-        logger.info(`Fetched data for race: ${raceName} at ${circuit}`);
+        const raceName = result.MRData.RaceTable.Race.RaceName;
+        const circuit = result.MRData.RaceTable.Race.Circuit.CircuitName;
+        const date = result.MRData.RaceTable.Race.Date;
+        logger.info('Fetched race data:', {
+            raceName,
+            circuit,
+            date,
+            resultCount: result.MRData.RaceTable.Race.ResultsList.Result.length
+        });
         
         return result;
     } catch (error) {
-        if (error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx
-            logger.error('API Error Response:', {
-                status: error.response.status,
-                statusText: error.response.statusText,
-                data: error.response.data
-            });
-        } else if (error.request) {
-            // The request was made but no response was received
-            logger.error('No response received from API:', error.message);
-        } else {
-            // Something happened in setting up the request that triggered an Error
-            logger.error('Error setting up API request:', error.message);
-        }
+        // Use the logger's error helper for comprehensive error logging
+        logger.logError(error, {
+            context: 'F1 API Request',
+            url: 'http://ergast.com/api/f1/current/last/results',
+            timestamp: new Date().toISOString()
+        });
         
-        if (error.config) {
-            logger.debug('Failed request config:', {
-                method: error.config.method,
-                url: error.config.url,
-                headers: error.config.headers
-            });
+        // Throw a more specific error if we can determine the cause
+        if (error.response?.status === 429) {
+            throw new Error('F1 API rate limit exceeded. Please try again in a few minutes.');
+        } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            throw new Error('Unable to connect to F1 API. The service may be down.');
+        } else if (error.message === 'Invalid data structure in API response') {
+            throw new Error('Received unexpected data format from F1 API.');
         }
         
         throw new Error('Failed to fetch F1 data. Please try again later.');
@@ -59,33 +65,93 @@ function formatTime(timeStr) {
 }
 
 function createRaceEmbed(data) {
-    const race = data.MRData.RaceTable.Race;
-    const results = race.ResultsList.Result;
+    const race = data?.MRData?.RaceTable?.Race;
+    if (!race) {
+        throw new Error('Invalid race data structure');
+    }
+
+    const results = Array.isArray(race.ResultsList?.Result) ? race.ResultsList.Result : [];
+    if (results.length === 0) {
+        throw new Error('No race results available');
+    }
 
     // Create the main race information
-    let raceInfo = `🏎️ **${race.RaceName}**\n`;
-    raceInfo += `🏁 Circuit: ${race.Circuit.CircuitName}\n`;
-    raceInfo += `📍 Location: ${race.Circuit.Location.Locality}, ${race.Circuit.Location.Country}\n`;
-    raceInfo += `📅 Date: ${race.Date}\n\n`;
+    let raceInfo = `🏎️ **${race.RaceName || 'Unknown Race'}**\n`;
+    raceInfo += `🏁 Circuit: ${race.Circuit?.CircuitName || 'Unknown Circuit'}\n`;
+    raceInfo += `📍 Location: ${race.Circuit?.Location?.Locality || 'Unknown'}, ${race.Circuit?.Location?.Country || 'Unknown'}\n`;
+    raceInfo += `📅 Date: ${race.Date || 'Date not available'}\n\n`;
 
     // Create podium section
     let podium = '🏆 **Podium**\n';
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < Math.min(3, results.length); i++) {
         const driver = results[i];
-        podium += `${i + 1}. ${driver.Driver.GivenName} ${driver.Driver.FamilyName} (${driver.Constructor.Name}) `;
-        podium += `- ${formatTime(driver.Time ? driver.Time._ : driver.Status)}\n`;
+        if (!driver) continue;
+        
+        const driverName = `${driver.Driver?.GivenName || ''} ${driver.Driver?.FamilyName || ''}`.trim();
+        const constructor = driver.Constructor?.Name || 'Unknown Team';
+        const time = formatTime(driver.Time?._ || driver.Status);
+        
+        podium += `${i + 1}. ${driverName} (${constructor}) - ${time}\n`;
     }
 
+    // Create nationality to flag emoji mapping
+    const nationalityToFlag = {
+        'British': '🇬🇧',
+        'Spanish': '🇪🇸',
+        'Monegasque': '🇲🇨',
+        'Dutch': '🇳🇱',
+        'French': '🇫🇷',
+        'German': '🇩🇪',
+        'Australian': '🇦🇺',
+        'Thai': '🇹🇭',
+        'Japanese': '🇯🇵',
+        'Chinese': '🇨🇳',
+        'Canadian': '🇨🇦',
+        'Danish': '🇩🇰',
+        'Finnish': '🇫🇮',
+        'Mexican': '🇲🇽',
+        'Italian': '🇮🇹',
+        'American': '🇺🇸',
+        'Swiss': '🇨🇭',
+        'New Zealander': '🇳🇿',
+        'Argentinian': '🇦🇷'
+    };
+
     // Create full results table
-    let fullResults = '\n📊 **Full Results**\n```\nPos  Driver                  Time/Status          Points\n';
-    fullResults += '──────────────────────────────────────────────────────\n';
+    let fullResults = '\n📊 **Full Results**\n```\nPos  Nat. Driver                  Time/Status          Points\n';
+    fullResults += '────────────────────────────────────────────────────────────\n';
     
     results.forEach(result => {
-        const driverName = `${result.Driver.GivenName} ${result.Driver.FamilyName}`.padEnd(20);
-        const timeStatus = (result.Time ? result.Time._ : result.Status).padEnd(18);
-        const points = result.points.padStart(3);
+        const driverName = `${result.Driver?.GivenName || ''} ${result.Driver?.FamilyName || ''}`.trim().padEnd(20);
         
-        fullResults += `${result.position.padStart(2)}   ${driverName} ${timeStatus} ${points}\n`;
+        // Handle different time/status formats
+        let timeStatus;
+        if (result.Time?._) {
+            // For finished drivers with time
+            timeStatus = result.Time._.includes('+') ? result.Time._ : result.Time._.split('.')[0];
+        } else if (result.Status?._ === 'Finished') {
+            timeStatus = result.Time?._ || 'Finished';
+        } else if (result.Status?.includes && result.Status.includes('Lap')) {
+            // For lapped drivers
+            timeStatus = result.Status;
+        } else if (result.Status?._) {
+            // For special statuses like Engine, Collision, etc.
+            timeStatus = result.Status._;
+        } else {
+            // Fallback for any other status
+            timeStatus = result.Status || 'N/A';
+        }
+        
+        // Get points and position from result attributes
+        const points = result.$.points || '0';
+        const position = result.$.positionText || result.$.position || '-';
+        
+        // Get nationality and corresponding flag
+        const nationality = result.Driver?.Nationality || '';
+        const flag = nationalityToFlag[nationality] || '🏳️';
+
+        // Format the line with proper padding
+        fullResults += `${position.toString().padStart(2)}   ${flag}  ${driverName} ${String(timeStatus).padEnd(18)} ${points.toString().padStart(3)}\n`;
     });
     fullResults += '```\n';
 
@@ -97,9 +163,17 @@ function createRaceEmbed(data) {
     });
 
     let fastestLapInfo = '⚡ **Fastest Lap**\n';
-    if (fastestLap.FastestLap) {
-        fastestLapInfo += `${fastestLap.Driver.GivenName} ${fastestLap.Driver.FamilyName} - ${fastestLap.FastestLap.Time}\n`;
-        fastestLapInfo += `Lap: ${fastestLap.FastestLap.lap} | Avg Speed: ${fastestLap.FastestLap.AverageSpeed._} ${fastestLap.FastestLap.AverageSpeed.$.units}\n`;
+    if (fastestLap?.FastestLap) {
+        const driverName = `${fastestLap.Driver?.GivenName || ''} ${fastestLap.Driver?.FamilyName || ''}`.trim();
+        const lapTime = fastestLap.FastestLap?.Time || 'N/A';
+        const lapNumber = fastestLap.FastestLap?.lap || 'N/A';
+        const avgSpeed = fastestLap.FastestLap?.AverageSpeed?._  || 'N/A';
+        const units = fastestLap.FastestLap?.AverageSpeed?.$ ? fastestLap.FastestLap.AverageSpeed.$.units : 'KPH';
+        
+        fastestLapInfo += `${driverName} - ${lapTime}\n`;
+        fastestLapInfo += `Lap: ${lapNumber} | Avg Speed: ${avgSpeed} ${units}\n`;
+    } else {
+        fastestLapInfo += 'No fastest lap data available\n';
     }
 
     return `${raceInfo}${podium}\n${fullResults}\n${fastestLapInfo}`;
@@ -128,7 +202,15 @@ module.exports = {
         const type = interaction.options.getString('type');
 
         if (type === 'stats') {
-            logger.info(`User ${interaction.user.tag} requested F1 stats`);
+            const commandStart = Date.now();
+            logger.info('F1 stats command initiated:', {
+                user: interaction.user.tag,
+                userId: interaction.user.id,
+                guild: interaction.guild.name,
+                guildId: interaction.guild.id,
+                timestamp: new Date().toISOString()
+            });
+
             await interaction.deferReply();
 
             try {
@@ -143,17 +225,37 @@ module.exports = {
                     content: formattedResponse,
                     allowedMentions: { parse: [] }
                 });
-                logger.info('Successfully sent F1 stats to Discord');
-            } catch (error) {
-                logger.error('Error in F1 command:', {
-                    error: error.message,
-                    stack: error.stack,
+
+                const executionTime = Date.now() - commandStart;
+                logger.info('F1 stats command completed successfully', {
+                    executionTime: `${executionTime}ms`,
                     user: interaction.user.tag,
                     guild: interaction.guild.name
                 });
+            } catch (error) {
+                const executionTime = Date.now() - commandStart;
+                logger.logError(error, {
+                    context: 'F1 Command Execution',
+                    user: interaction.user.tag,
+                    userId: interaction.user.id,
+                    guild: interaction.guild.name,
+                    guildId: interaction.guild.id,
+                    executionTime: `${executionTime}ms`,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Send a more specific error message to the user if possible
+                let errorMessage = '❌ Sorry, there was an error fetching F1 data. Please try again later.';
+                if (error.message.includes('rate limit')) {
+                    errorMessage = '❌ The F1 API is currently rate limited. Please try again in a few minutes.';
+                } else if (error.message.includes('Unable to connect')) {
+                    errorMessage = '❌ Unable to connect to the F1 API. The service may be down.';
+                } else if (error.message.includes('unexpected data format')) {
+                    errorMessage = '❌ Received unexpected data from the F1 API. This might be a temporary issue.';
+                }
                 
                 await interaction.editReply({
-                    content: '❌ Sorry, there was an error fetching F1 data. Please try again later.',
+                    content: errorMessage,
                     ephemeral: true
                 });
             }

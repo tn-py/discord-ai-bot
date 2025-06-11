@@ -21,7 +21,6 @@ module.exports = {
         'DISCORD_GUILD_ID',
         'OPENAI_API_KEY',
         'OPENAI_ASSISTANT_ID',
-        'GOOGLE_GEMINI_API_KEY',
         'OPENWEATHER_API_KEY'
       ]);
 
