@@ -24,6 +24,11 @@ const config = {
     geoEndpoint: 'http://api.openweathermap.org/geo/1.0/direct',
     weatherEndpoint: 'https://api.open-meteo.com/v1/forecast'
   },
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID,
+    authToken: process.env.TWILIO_AUTH_TOKEN,
+    phoneNumber: process.env.TWILIO_PHONE_NUMBER
+  },
   rateLimiting: {
     windowMs: 60000, // 1 minute
     maxRequests: 5
