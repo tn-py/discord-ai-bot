@@ -24,6 +24,10 @@ const config = {
     geoEndpoint: 'http://api.openweathermap.org/geo/1.0/direct',
     weatherEndpoint: 'https://api.open-meteo.com/v1/forecast'
   },
+  movie: {
+    apiKey: process.env.OMDB_API_KEY,
+    baseUrl: 'http://www.omdbapi.com/'
+  },
   twilio: {
     accountSid: process.env.TWILIO_ACCOUNT_SID,
     authToken: process.env.TWILIO_AUTH_TOKEN,
