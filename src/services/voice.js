@@ -6,10 +6,12 @@ const {
     createAudioPlayer,
     createAudioResource,
     NoSubscriberBehavior,
-    AudioPlayerStatus
+    AudioPlayerStatus,
+    StreamType
 } = require('@discordjs/voice');
 const logger = require('../utils/logger');
 const vapiService = require('./vapi');
+const prism = require('prism-media');
 
 class VoiceService {
     /**
@@ -40,21 +42,32 @@ class VoiceService {
                     connection.subscribe(player);
                     logger.info('Audio player subscribed to connection');
 
-                    // Use a reliable public MP3 for testing instead of Google TTS (which often blocks bots)
-                    // This is a short "success" sound effect
-                    const audioUrl = 'https://www.soundjay.com/buttons/sounds/button-3.mp3';
-                    const resource = createAudioResource(audioUrl);
-
-                    player.play(resource);
-                    logger.info('Playing welcome sound');
-
-                    player.on(AudioPlayerStatus.Playing, () => {
-                        logger.info('Audio player is playing');
+                    // Debug: Log all state changes
+                    player.on('stateChange', (oldState, newState) => {
+                        logger.info(`Audio player transitioned from ${oldState.status} to ${newState.status}`);
                     });
 
                     player.on('error', error => {
                         logger.error('Audio player error:', error);
                     });
+
+                    // Generate a 440Hz sine wave using FFmpeg
+                    // This rules out network issues with external URLs
+                    const args = [
+                        '-f', 'lavfi',
+                        '-i', 'sine=frequency=440:duration=3', // 3 seconds of 440Hz beep
+                        '-f', 's16le',
+                        '-ar', '48000',
+                        '-ac', '2'
+                    ];
+
+                    const ffmpeg = new prism.FFmpeg({ args });
+                    const resource = createAudioResource(ffmpeg, {
+                        inputType: StreamType.Raw
+                    });
+
+                    player.play(resource);
+                    logger.info('Playing generated test tone');
 
                     // Trigger VAPI session
                     vapiService.startCall(channel.id);
