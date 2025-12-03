@@ -6,6 +6,7 @@ This bot integrates with the Discord API and provides the following functionalit
 2. **Image Generation** using OpenAI
 3. **AI Chatbot** powered by OpenAI
 4. **Weather Forecast** using OpenWeather and Open-Meteo APIs
+5. **Movie Information** using OMDb API
 
 ---
 
@@ -17,6 +18,7 @@ This bot integrates with the Discord API and provides the following functionalit
 - OpenAI API Key
 - OpenAI Assistant ID
 - OpenWeather API Key
+- OMDb API Key
 
 Ensure you have a `.env` file in the root directory with the following variables:
 
@@ -26,6 +28,7 @@ DISCORD_GUILD_ID=your_discord_guild_id
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_ASSISTANT_ID=your_openai_assistant_id
 OPENWEATHER_API_KEY=your_openweather_api_key
+OMDB_API_KEY=your_omdb_api_key
 ```
 
 ---
@@ -56,6 +59,7 @@ The bot also provides traditional slash commands for specific functions:
 | /chat        | Start a conversation with the AI     |
 | /weather     | Get the weather forecast for a location |
 | /f1 check     | Get the most recent F1 race stats |
+| /movie        | Get information about a movie        |
 
 ---
 

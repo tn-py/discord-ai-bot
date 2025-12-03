@@ -4,12 +4,14 @@ const logger = require('../../utils/logger');
 const { APIError } = require('../../utils/errors');
 
 // Mock axios
-const mockGet = jest.fn();
-jest.mock('axios', () => ({
-    create: jest.fn(() => ({
-        get: mockGet
-    }))
-}));
+jest.mock('axios', () => {
+    const mockGet = jest.fn();
+    return {
+        create: jest.fn(() => ({
+            get: mockGet
+        }))
+    };
+});
 
 // Mock logger
 jest.mock('../../utils/logger', () => ({
@@ -20,8 +22,13 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 describe('Movie Service', () => {
+    let mockGet;
+
     beforeEach(() => {
         jest.clearAllMocks();
+        // Get the mock function from the axios module
+        const axios = require('axios');
+        mockGet = axios.create().get;
     });
 
     describe('getMovie', () => {
