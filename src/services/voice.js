@@ -24,8 +24,28 @@ class VoiceService {
 
             connection.on(VoiceConnectionStatus.Ready, () => {
                 logger.info(`Joined voice channel: ${channel.name}`);
-                // Trigger VAPI session when ready
-                vapiService.startCall(channel.id);
+
+                // Play a welcome sound or silence to establish audio stream
+                // This is crucial for "voice activity" to show up in Discord
+                try {
+                    const { createAudioPlayer, createAudioResource, NoSubscriberBehavior } = require('@discordjs/voice');
+                    const player = createAudioPlayer({
+                        behaviors: {
+                            noSubscriber: NoSubscriberBehavior.Play,
+                        },
+                    });
+
+                    // Create a simple resource (could be a file or stream)
+                    // For now, we'll try to just establish the player
+                    connection.subscribe(player);
+
+                    logger.info('Audio player subscribed to connection');
+
+                    // Trigger VAPI session
+                    vapiService.startCall(channel.id);
+                } catch (error) {
+                    logger.error('Error setting up audio player:', error);
+                }
             });
 
             connection.on(VoiceConnectionStatus.Disconnected, async () => {
