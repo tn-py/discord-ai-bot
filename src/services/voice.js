@@ -40,12 +40,13 @@ class VoiceService {
                     connection.subscribe(player);
                     logger.info('Audio player subscribed to connection');
 
-                    // Use a simple TTS URL for testing
-                    const ttsUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=Hello%2C%20I%20am%20GiGi.%20I%20am%20listening.&tl=en';
-                    const resource = createAudioResource(ttsUrl);
+                    // Use a reliable public MP3 for testing instead of Google TTS (which often blocks bots)
+                    // This is a short "success" sound effect
+                    const audioUrl = 'https://www.soundjay.com/buttons/sounds/button-3.mp3';
+                    const resource = createAudioResource(audioUrl);
 
                     player.play(resource);
-                    logger.info('Playing welcome message');
+                    logger.info('Playing welcome sound');
 
                     player.on(AudioPlayerStatus.Playing, () => {
                         logger.info('Audio player is playing');

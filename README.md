@@ -181,6 +181,16 @@ To use GiGi with an OpenAI Assistant:
 - **Bot Not Responding**: Ensure the bot is added to your Discord server and has the required permissions.
 - **GiGi Not Responding**: Check that your `OPENAI_ASSISTANT_ID` is correct and that you've mentioned "GiGi" in your message.
 
+### **Required Discord App Permissions**
+
+- Read Messages/View Channels
+- Send Messages
+- Embed Links
+- Connect (to voice channels)
+- Speak (in voice channels)
+- Use Voice Activity
+
+
 ### **Check Logs**
 
 To check the logs of the Docker container:
