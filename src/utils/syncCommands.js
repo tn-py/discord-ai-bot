@@ -53,12 +53,19 @@ async function syncCommands({ global = false, clear = false } = {}) {
 if (require.main === module) {
   // Load environment variables if not already loaded
   require('dotenv').config();
-  
+
   const global = process.argv.includes('--global');
   const clear = process.argv.includes('--clear');
   syncCommands({ global, clear })
-    .then(() => process.exit(0))
-    .catch(() => process.exit(1));
+    .then(() => {
+      logger.info('Command sync completed');
+      // Give some time for logs to flush and handles to close
+      setTimeout(() => process.exit(0), 1000);
+    })
+    .catch((error) => {
+      console.error('Sync failed:', error);
+      process.exit(1);
+    });
 }
 
 module.exports = { syncCommands };

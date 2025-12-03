@@ -7,6 +7,7 @@ This bot integrates with the Discord API and provides the following functionalit
 3. **AI Chatbot** powered by OpenAI
 4. **Weather Forecast** using OpenWeather and Open-Meteo APIs
 5. **Movie Information** using OMDb API
+6. **Voice Integration** with VAPI when joining "GiGi" channel
 
 ---
 
@@ -19,6 +20,8 @@ This bot integrates with the Discord API and provides the following functionalit
 - OpenAI Assistant ID
 - OpenWeather API Key
 - OMDb API Key
+- VAPI API Key
+- VAPI Assistant ID
 
 Ensure you have a `.env` file in the root directory with the following variables:
 
@@ -29,6 +32,8 @@ OPENAI_API_KEY=your_openai_api_key
 OPENAI_ASSISTANT_ID=your_openai_assistant_id
 OPENWEATHER_API_KEY=your_openweather_api_key
 OMDB_API_KEY=your_omdb_api_key
+VAPI_API_KEY=your_vapi_api_key
+VAPI_ASSISTANT_ID=your_vapi_assistant_id
 ```
 
 ---
@@ -48,6 +53,10 @@ Examples:
 - "Hey GiGi, what's the weather like today?"
 - "I wonder if GiGi knows the answer to this question?"
 - "GiGi can you help me with my homework?"
+
+### **Voice Integration**
+
+The bot will automatically join any voice channel named **"GiGi"** (case-sensitive) when a user joins it. It will then connect to the configured VAPI assistant.
 
 ### **Other Bot Commands**
 
@@ -126,6 +135,31 @@ npm run sync-commands:global
 ```
 
 Note: Global commands can take up to 1 hour to propagate across all servers due to Discord's caching. For development and testing, use `sync-commands` for immediate updates in your test server. Once your commands are stable, use `sync-commands:global` to deploy them across all servers where your bot is present.
+
+---
+
+## **Updating Commands**
+
+If you've added new commands (like `/movie`) and they aren't appearing in Discord after deployment:
+
+1. **Restart the Discord Client**: Sometimes Discord needs a reload (Ctrl+R) to see new commands.
+2. **Rebuild the Container**: If using Docker, ensure you rebuilt the image to include the new code:
+   ```bash
+   docker-compose up --build -d
+   ```
+3. **Manual Sync**: You can force a command sync by running the sync script:
+   
+   **Locally:**
+   ```bash
+   npm run sync-commands
+   ```
+
+   **Inside Docker:**
+   ```bash
+   docker exec -it discord-ai-bot npm run sync-commands
+   ```
+
+   *Note: This syncs commands to the guild specified in `DISCORD_GUILD_ID`. For global commands, use `sync-commands:global`.*
 
 ---
 

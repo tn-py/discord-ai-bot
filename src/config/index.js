@@ -5,7 +5,9 @@ const config = {
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildVoiceStates
     ],
     guildId: process.env.DISCORD_GUILD_ID
   },
@@ -27,6 +29,11 @@ const config = {
   movie: {
     apiKey: process.env.OMDB_API_KEY,
     baseUrl: 'http://www.omdbapi.com/'
+  },
+  vapi: {
+    apiKey: process.env.VAPI_API_KEY,
+    assistantId: process.env.VAPI_ASSISTANT_ID,
+    baseUrl: 'https://api.vapi.ai'
   },
   twilio: {
     accountSid: process.env.TWILIO_ACCOUNT_SID,
