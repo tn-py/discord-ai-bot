@@ -25,9 +25,20 @@ module.exports = {
         // Check if user left the GiGi channel (either disconnected or moved)
         if (oldState.channelId && oldState.channel.name === 'GiGi') {
             const channel = oldState.channel;
+
+            logger.debug(`User left GiGi channel. Members count: ${channel.members.size}`);
+            channel.members.forEach(member => {
+                logger.debug(`Member in channel: ${member.user.tag} (Bot: ${member.user.bot})`);
+            });
+
             // Check if channel is empty (except bot)
-            if (channel.members.size === 1 && channel.members.has(channel.client.user.id)) {
-                logger.info('GiGi channel empty. Bot leaving...');
+            // We filter members to ignore bots, or just check if size is 1 (the bot itself)
+            const humans = channel.members.filter(member => !member.user.bot);
+
+            logger.debug(`Human members remaining: ${humans.size}`);
+
+            if (humans.size === 0) {
+                logger.info('GiGi channel empty (no humans). Bot leaving...');
                 voiceService.leaveChannel(channel.guild.id);
             }
         }

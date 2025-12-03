@@ -2,7 +2,11 @@ const {
     joinVoiceChannel,
     getVoiceConnection,
     VoiceConnectionStatus,
-    entersState
+    entersState,
+    createAudioPlayer,
+    createAudioResource,
+    NoSubscriberBehavior,
+    AudioPlayerStatus
 } = require('@discordjs/voice');
 const logger = require('../utils/logger');
 const vapiService = require('./vapi');
@@ -25,21 +29,31 @@ class VoiceService {
             connection.on(VoiceConnectionStatus.Ready, () => {
                 logger.info(`Joined voice channel: ${channel.name}`);
 
-                // Play a welcome sound or silence to establish audio stream
-                // This is crucial for "voice activity" to show up in Discord
+                // Play a welcome sound to establish audio stream
                 try {
-                    const { createAudioPlayer, createAudioResource, NoSubscriberBehavior } = require('@discordjs/voice');
                     const player = createAudioPlayer({
                         behaviors: {
                             noSubscriber: NoSubscriberBehavior.Play,
                         },
                     });
 
-                    // Create a simple resource (could be a file or stream)
-                    // For now, we'll try to just establish the player
                     connection.subscribe(player);
-
                     logger.info('Audio player subscribed to connection');
+
+                    // Use a simple TTS URL for testing
+                    const ttsUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=Hello%2C%20I%20am%20GiGi.%20I%20am%20listening.&tl=en';
+                    const resource = createAudioResource(ttsUrl);
+
+                    player.play(resource);
+                    logger.info('Playing welcome message');
+
+                    player.on(AudioPlayerStatus.Playing, () => {
+                        logger.info('Audio player is playing');
+                    });
+
+                    player.on('error', error => {
+                        logger.error('Audio player error:', error);
+                    });
 
                     // Trigger VAPI session
                     vapiService.startCall(channel.id);
