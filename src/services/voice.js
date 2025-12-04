@@ -35,70 +35,88 @@ class VoiceService {
             });
 
             connection.on(VoiceConnectionStatus.Ready, async () => {
-                logger.info(`Joined voice channel: ${channel.name}`);
+                try {
+                    logger.info(`Joined voice channel: ${channel.name}`);
 
-                // Setup audio player for VAPI output (Speaker)
-                const speakerStream = new PassThrough();
-                const player = createAudioPlayer({
-                    behaviors: {
-                        noSubscriber: NoSubscriberBehavior.Play,
-                    },
-                });
-
-                const resource = createAudioResource(speakerStream, {
-                    inputType: StreamType.Raw
-                });
-
-                player.play(resource);
-                connection.subscribe(player);
-
-                this.streams.set(channel.guild.id, { speaker: speakerStream, player });
-
-                // Handle VAPI audio events
-                const onVapiAudio = (buffer) => {
-                    speakerStream.write(buffer);
-                };
-
-                vapiService.on('audio', onVapiAudio);
-
-                // Handle VAPI close/error to cleanup
-                const onVapiClose = () => {
-                    this.leaveChannel(channel.guild.id);
-                };
-                vapiService.once('close', onVapiClose);
-                vapiService.once('error', onVapiClose);
-
-                // Setup audio receiver for Discord input (Microphone)
-                connection.receiver.speaking.on('start', (userId) => {
-                    const opusStream = connection.receiver.subscribe(userId, {
-                        end: {
-                            behavior: EndBehaviorType.AfterSilence,
-                            duration: 100,
+                    // Setup audio player for VAPI output (Speaker)
+                    logger.debug('Setting up audio player...');
+                    const speakerStream = new PassThrough();
+                    const player = createAudioPlayer({
+                        behaviors: {
+                            noSubscriber: NoSubscriberBehavior.Play,
                         },
                     });
 
-                    // Decode Opus to PCM (48kHz, 1 channel)
-                    const decoder = new prism.opus.Decoder({ rate: 48000, channels: 1, frameSize: 960 });
-
-                    opusStream.pipe(decoder);
-
-                    decoder.on('data', (pcmData) => {
-                        // Resample if necessary? VAPI usually handles 48k.
-                        // But if VAPI expects 16k, we might need to downsample.
-                        // For now, send 48k and see.
-                        vapiService.sendAudio(pcmData);
+                    logger.debug('Creating audio resource...');
+                    const resource = createAudioResource(speakerStream, {
+                        inputType: StreamType.Raw
                     });
 
-                    decoder.on('error', (err) => {
-                        logger.error(`Opus decoder error for user ${userId}:`, err);
-                    });
-                });
+                    logger.debug('Playing resource and subscribing...');
+                    player.play(resource);
+                    connection.subscribe(player);
 
-                // Start VAPI call
-                try {
+                    this.streams.set(channel.guild.id, { speaker: speakerStream, player });
+
+                    // Handle VAPI audio events
+                    logger.debug('Setting up VAPI event listeners...');
+                    const onVapiAudio = (buffer) => {
+                        speakerStream.write(buffer);
+                    };
+
+                    vapiService.on('audio', onVapiAudio);
+
+                    // Handle VAPI close/error to cleanup
+                    const onVapiClose = () => {
+                        this.leaveChannel(channel.guild.id);
+                    };
+                    vapiService.once('close', onVapiClose);
+                    vapiService.once('error', onVapiClose);
+
+                    // Setup audio receiver for Discord input (Microphone)
+                    logger.debug('Setting up audio receiver...');
+                    if (!connection.receiver) {
+                        throw new Error('Voice connection receiver is undefined');
+                    }
+
+                    connection.receiver.speaking.on('start', (userId) => {
+                        const opusStream = connection.receiver.subscribe(userId, {
+                            end: {
+                                behavior: EndBehaviorType.AfterSilence,
+                                duration: 100,
+                            },
+                        });
+
+                        // Decode Opus to PCM (48kHz, 1 channel)
+                        const decoder = new prism.opus.Decoder({ rate: 48000, channels: 1, frameSize: 960 });
+
+                        opusStream.pipe(decoder);
+
+                        decoder.on('data', (pcmData) => {
+                            // Resample if necessary? VAPI usually handles 48k.
+                            // But if VAPI expects 16k, we might need to downsample.
+                            // For now, send 48k and see.
+                            vapiService.sendAudio(pcmData);
+                        });
+
+                        decoder.on('error', (err) => {
+                            logger.error(`Opus decoder error for user ${userId}:`, err);
+                        });
+                    });
+
+                    // Start VAPI call
+                    logger.debug('Starting VAPI call...');
                     await vapiService.startCall(channel.id);
+                    logger.debug('VAPI call started successfully.');
+
                 } catch (error) {
-                    logger.error('Failed to start VAPI call:', error);
+                    logger.error('Error in VoiceConnectionStatus.Ready handler:', error);
+                    // Try to log detailed error info
+                    try {
+                        logger.error('Detailed error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                    } catch (e) {
+                        logger.error('Could not stringify error');
+                    }
                     this.leaveChannel(channel.guild.id);
                 }
             });
