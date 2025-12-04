@@ -58,10 +58,28 @@ class VoiceService {
 
                     this.streams.set(channel.guild.id, { speaker: speakerStream, player });
 
-                    // Handle VAPI audio events
+                    // Handle VAPI audio events - upsample from 16kHz mono to 48kHz stereo
                     logger.debug('Setting up VAPI event listeners...');
+
+                    // Create FFmpeg upsampler for VAPI audio (16kHz mono -> 48kHz stereo)
+                    const vapiUpsampler = new prism.FFmpeg({
+                        args: [
+                            '-f', 's16le',
+                            '-ar', '16000',
+                            '-ac', '1',
+                            '-i', 'pipe:0',
+                            '-f', 's16le',
+                            '-ar', '48000',
+                            '-ac', '2',
+                            'pipe:1'
+                        ]
+                    });
+
+                    vapiUpsampler.pipe(speakerStream);
+
                     const onVapiAudio = (buffer) => {
-                        speakerStream.write(buffer);
+                        logger.debug(`Received ${buffer.length} bytes from VAPI, upsampling...`);
+                        vapiUpsampler.write(buffer);
                     };
 
                     vapiService.on('audio', onVapiAudio);
