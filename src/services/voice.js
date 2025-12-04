@@ -80,6 +80,8 @@ class VoiceService {
                     }
 
                     connection.receiver.speaking.on('start', (userId) => {
+                        logger.debug(`User ${userId} started speaking`);
+
                         const opusStream = connection.receiver.subscribe(userId, {
                             end: {
                                 behavior: EndBehaviorType.AfterSilence,
@@ -87,20 +89,35 @@ class VoiceService {
                             },
                         });
 
-                        // Decode Opus to PCM (48kHz, 1 channel)
-                        const decoder = new prism.opus.Decoder({ rate: 48000, channels: 1, frameSize: 960 });
+                        // Decode Opus to PCM (48kHz, 2 channels)
+                        const decoder = new prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 960 });
 
-                        opusStream.pipe(decoder);
+                        // Resample from 48kHz stereo to 16kHz mono for VAPI
+                        const ffmpeg = new prism.FFmpeg({
+                            args: [
+                                '-f', 's16le',
+                                '-ar', '48000',
+                                '-ac', '2',
+                                '-i', 'pipe:0',
+                                '-f', 's16le',
+                                '-ar', '16000',
+                                '-ac', '1',
+                                'pipe:1'
+                            ]
+                        });
 
-                        decoder.on('data', (pcmData) => {
-                            // Resample if necessary? VAPI usually handles 48k.
-                            // But if VAPI expects 16k, we might need to downsample.
-                            // For now, send 48k and see.
+                        opusStream.pipe(decoder).pipe(ffmpeg);
+
+                        ffmpeg.on('data', (pcmData) => {
                             vapiService.sendAudio(pcmData);
                         });
 
                         decoder.on('error', (err) => {
                             logger.error(`Opus decoder error for user ${userId}:`, err);
+                        });
+
+                        ffmpeg.on('error', (err) => {
+                            logger.error(`FFmpeg resampling error for user ${userId}:`, err);
                         });
                     });
 
