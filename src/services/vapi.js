@@ -41,15 +41,15 @@ class VapiService extends EventEmitter {
                 name: `Discord-${channelId}`
             });
 
-            // The response structure for vapi.websocket transport usually contains the URL
-            // It might be in response.data.webCallUrl or response.data.call.webCallUrl or similar.
-            // Based on search, it might be websocketCallUrl.
-            // Let's log the response to be sure if it fails.
-            logger.debug(`VAPI Call Response: ${JSON.stringify(response.data, null, 2)}`);
-
             const call = response.data;
-            // Check for various possible URL fields
-            const webCallUrl = call.webCallUrl || call.websocketCallUrl || (call.monitor && call.monitor.listenUrl);
+            logger.debug(`VAPI Call Response: ${JSON.stringify(call, null, 2)}`);
+
+            // Extract WebSocket URL from transport.websocketCallUrl
+            const webCallUrl =
+                (call.transport && call.transport.websocketCallUrl) ||
+                call.webCallUrl ||
+                call.websocketCallUrl ||
+                (call.monitor && call.monitor.listenUrl);
 
             if (!webCallUrl) {
                 logger.error(`Full VAPI Response: ${JSON.stringify(call, null, 2)}`);
@@ -58,7 +58,8 @@ class VapiService extends EventEmitter {
 
             this.sessionId = call.id;
 
-            logger.info(`VAPI WebSocket URL obtained. Session ID: ${this.sessionId}`);
+            logger.info(`VAPI WebSocket URL obtained: ${webCallUrl}`);
+            logger.info(`Session ID: ${this.sessionId}`);
 
             // Connect to WebSocket
             this.ws = new WebSocket(webCallUrl);
@@ -75,7 +76,7 @@ class VapiService extends EventEmitter {
                 } else {
                     try {
                         const message = JSON.parse(data.toString());
-                        // logger.debug('VAPI Message:', message);
+                        logger.debug(`VAPI Message: ${JSON.stringify(message)}`);
 
                         if (message.type === 'audio') {
                             // Handle if audio comes as JSON (unlikely for raw stream but possible)
