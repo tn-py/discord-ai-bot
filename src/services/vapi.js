@@ -37,6 +37,11 @@ class VapiService extends EventEmitter {
                 assistantId: config.vapi.assistantId,
                 transport: {
                     provider: 'vapi.websocket',
+                    audioFormat: {
+                        format: 'pcm_s16le',
+                        container: 'raw',
+                        sampleRate: 16000
+                    }
                 },
                 name: `Discord-${channelId}`
             });
