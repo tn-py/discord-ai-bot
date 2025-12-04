@@ -52,6 +52,7 @@ class VapiService extends EventEmitter {
             const webCallUrl = call.webCallUrl || call.websocketCallUrl || (call.monitor && call.monitor.listenUrl);
 
             if (!webCallUrl) {
+                logger.error('Full VAPI Response:', JSON.stringify(call, null, 2));
                 throw new Error('No WebSocket URL found in VAPI response');
             }
 
