@@ -32,15 +32,32 @@ class VapiService extends EventEmitter {
 
             logger.info(`Starting VAPI session for channel: ${channelId}`);
 
-            // Initiate the web call
-            const response = await this.client.post('/call/web', {
+            // Initiate the call with WebSocket transport
+            const response = await this.client.post('/call', {
                 assistantId: config.vapi.assistantId,
+                transport: {
+                    provider: 'vapi.websocket',
+                },
+                name: `Discord-${channelId}`
             });
 
-            const { webCallUrl, call } = response.data;
+            // The response structure for vapi.websocket transport usually contains the URL
+            // It might be in response.data.webCallUrl or response.data.call.webCallUrl or similar.
+            // Based on search, it might be websocketCallUrl.
+            // Let's log the response to be sure if it fails.
+            logger.debug('VAPI Call Response:', response.data);
+
+            const call = response.data;
+            // Check for various possible URL fields
+            const webCallUrl = call.webCallUrl || call.websocketCallUrl || (call.monitor && call.monitor.listenUrl);
+
+            if (!webCallUrl) {
+                throw new Error('No WebSocket URL found in VAPI response');
+            }
+
             this.sessionId = call.id;
 
-            logger.info(`VAPI Web Call URL obtained. Session ID: ${this.sessionId}`);
+            logger.info(`VAPI WebSocket URL obtained. Session ID: ${this.sessionId}`);
 
             // Connect to WebSocket
             this.ws = new WebSocket(webCallUrl);

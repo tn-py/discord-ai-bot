@@ -1,0 +1,348 @@
+---
+title: Phone calls
+subtitle: Learn to make your first phone call with a voice agent
+slug: quickstart/phone
+---
+
+## Overview
+
+Vapi makes it easy to build voice agents that can make and receive phone calls. In under 5 minutes, you'll create a voice assistant and start talking to it over the phone.
+
+**In this quickstart, you'll learn to:**
+- Create an assistant using the Dashboard or programmatically
+- Set up a phone number  
+- Make your first inbound and outbound calls
+
+## Prerequisites
+
+- [A Vapi account](https://dashboard.vapi.ai)
+- For SDK usage: API key from the Dashboard
+
+<Tip>
+**Using the Vapi CLI?** You can create assistants, manage phone numbers, and make calls directly from your terminal:
+
+```bash
+# Install the CLI
+curl -sSL https://vapi.ai/install.sh | bash
+
+# Login and create an assistant
+vapi login
+vapi assistant create
+```
+
+[Learn more about the Vapi CLI →](/cli)
+</Tip>
+
+## Create your first voice assistant
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Open the Vapi Dashboard">
+        Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+      </Step>
+
+      <Step title="Create a new assistant">
+        In the dashboard, create a new assistant using the customer support specialist template.
+
+        <Frame caption="Creating a new assistant">
+          <img src="file:38d09664-8cb8-4a93-bd7b-92dafdae5a63" />
+        </Frame>
+      </Step>
+
+      <Step title="Configure your assistant">
+        Set the first message and system prompt for your assistant:
+
+        **First message:**
+        ```plaintext
+        Hi there, this is Alex from TechSolutions customer support. How can I help you today?
+        ```
+
+        **System prompt:**
+        ```plaintext
+        You are Alex, a customer service voice assistant for TechSolutions. Your primary purpose is to help customers resolve issues with their products, answer questions about services, and ensure a satisfying support experience.
+        - Sound friendly, patient, and knowledgeable without being condescending
+        - Use a conversational tone with natural speech patterns
+        - Speak with confidence but remain humble when you don't know something
+        - Demonstrate genuine concern for customer issues
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="TypeScript (Server SDK)">
+    <Steps>
+      <Step title="Install the SDK">
+        <CodeBlocks>
+        ```bash title="npm"
+        npm install @vapi-ai/server-sdk
+        ```
+
+        ```bash title="yarn"
+        yarn add @vapi-ai/server-sdk
+        ```
+
+        ```bash title="pnpm"
+        pnpm add @vapi-ai/server-sdk
+        ```
+
+        ```bash title="bun"
+        bun add @vapi-ai/server-sdk
+        ```
+        </CodeBlocks>
+      </Step>
+
+      <Step title="Create the assistant">
+        ```typescript
+        import { VapiClient } from '@vapi-ai/server-sdk';
+
+        const vapi = new VapiClient({ token: process.env.VAPI_API_KEY! });
+
+        const assistant = await vapi.assistants.create({
+          name: 'Customer Support Assistant',
+          model: {
+            provider: 'openai',
+            model: 'gpt-4o',
+            messages: [{ role: 'system', content: 'You are Alex, a customer service voice assistant for TechSolutions.' }]
+          },
+          voice: { provider: '11labs', voiceId: 'cgSgspJ2msm6clMCkdW9' },
+          firstMessage: 'Hi there, this is Alex from TechSolutions customer support. How can I help you today?'
+        });
+
+        console.log(assistant.id);
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Python (Server SDK)">
+    <Steps>
+      <Step title="Install the SDK">
+        ```bash
+        pip install vapi_server_sdk
+        ```
+      </Step>
+
+      <Step title="Create the assistant">
+        ```python
+        import os
+        from vapi import Vapi
+
+        client = Vapi(token=os.getenv("VAPI_API_KEY"))
+
+        assistant = client.assistants.create(
+            name="Customer Support Assistant",
+            model={
+                "provider": "openai",
+                "model": "gpt-4o",
+                "messages": [{"role": "system", "content": "You are Alex, a customer service voice assistant for TechSolutions."}],
+            },
+            voice={"provider": "11labs", "voiceId": "cgSgspJ2msm6clMCkdW9"},
+            first_message="Hi there, this is Alex from TechSolutions customer support. How can I help you today?",
+        )
+
+        print(assistant.id)
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="cURL">
+    <Steps>
+      <Step title="Create the assistant">
+        ```bash
+        curl -X POST "https://api.vapi.ai/assistant" \
+          -H "Authorization: Bearer $VAPI_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "Customer Support Assistant",
+            "model": {
+              "provider": "openai",
+              "model": "gpt-4o",
+              "messages": [{ "role": "system", "content": "You are Alex, a customer service voice assistant for TechSolutions." }]
+            },
+            "voice": { "provider": "11labs", "voiceId": "cgSgspJ2msm6clMCkdW9" },
+            "firstMessage": "Hi there, this is Alex from TechSolutions customer support. How can I help you today?"
+          }'
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Set up a phone number
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Create a phone number">
+        In the Phone Numbers tab, create a free US phone number or import an existing number from another provider.
+        
+        <Frame caption="Create a phone number">
+          <img src="file:4f88ffab-f64d-43a6-bc17-2dfe9dd6da0e" />
+        </Frame>
+        
+        <Warning>
+          Free Vapi phone numbers are only available for US national use. For international calls, you'll need to import a number from Twilio or another provider.
+        </Warning>
+      </Step>
+
+      <Step title="Attach your assistant to the number">
+        Select your assistant in the inbound settings for your phone number. When this number is called, your assistant will automatically answer.
+        
+        <Frame>
+          <img src="file:e855d2e7-b300-4cdd-996d-5071374469c4" />
+        </Frame>
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="TypeScript (Server SDK)">
+    <Steps>
+      <Step title="Create a phone number (API)">
+        ```typescript
+        const res = await fetch('https://api.vapi.ai/phone-number', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            provider: 'vapi',
+            assistantId: 'your-assistant-id',
+            numberDesiredAreaCode: '415',
+          }),
+        });
+        const phoneNumber = await res.json();
+        console.log(phoneNumber.id);
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Python (Server SDK)">
+    <Steps>
+      <Step title="Create a phone number (API)">
+        ```python
+        import os, requests
+
+        res = requests.post(
+            "https://api.vapi.ai/phone-number",
+            headers={
+                "Authorization": f"Bearer {os.getenv('VAPI_API_KEY')}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "provider": "vapi",
+                "assistantId": "your-assistant-id",
+                "numberDesiredAreaCode": "415",
+            },
+            timeout=30,
+        )
+        phone_number = res.json()
+        print(phone_number["id"])
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="cURL">
+    <Steps>
+      <Step title="Create a phone number (API)">
+        ```bash
+        curl -X POST "https://api.vapi.ai/phone-number" \
+          -H "Authorization: Bearer $VAPI_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "provider": "vapi",
+            "assistantId": "your-assistant-id",
+            "numberDesiredAreaCode": "415"
+          }'
+        ```
+      </Step>
+
+      
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Make your first calls
+
+<Steps>
+  <Step title="Test inbound calling">
+    Call the phone number you just created. Your assistant will pick up and start the conversation with your configured first message.
+  </Step>
+
+  <Step title="Place an outbound call">
+    <Tabs>
+      <Tab title="Dashboard">
+        In the dashboard, go to the outbound calls section:
+        1. Enter your own phone number as the target
+        2. Select your assistant
+        3. Click "Make Call"
+
+        <Frame caption="Making an outbound call">
+          <img src="file:67333d93-ff25-4fb8-9555-4fff87ff38d2" />
+        </Frame>
+      </Tab>
+
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        const call = await vapi.calls.create({
+          assistant: { assistantId: 'your-assistant-id' },
+          phoneNumberId: 'your-phone-number-id',
+          customer: { number: '+1234567890' },
+        });
+        console.log(call.id);
+        ```
+      </Tab>
+
+      <Tab title="Python (Server SDK)">
+        ```python
+        call = client.calls.create(
+            assistant_id="your-assistant-id",
+            phone_number_id="your-phone-number-id",
+            customer={"number": "+1234567890"},
+        )
+        print(call.id)
+        ```
+      </Tab>
+
+      <Tab title="cURL">
+        ```bash
+        curl -X POST "https://api.vapi.ai/call" \
+          -H "Authorization: Bearer $VAPI_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "assistant": { "assistantId": "your-assistant-id" },
+            "phoneNumberId": "your-phone-number-id",
+            "customer": { "number": "+1234567890" }
+          }'
+        ```
+      </Tab>
+    </Tabs>
+
+    Your assistant will call the specified number immediately.
+  </Step>
+
+  <Step title="Test web calling (optional)">
+    You can also test your assistant directly in the dashboard by clicking the call button—no phone number required.
+    
+    <Frame>
+      <img src="file:c5803a5e-678d-4009-8580-470103d3b8df" />
+    </Frame>
+  </Step>
+</Steps>
+
+## Next steps
+
+Now that you have a working voice assistant:
+
+- **Customize the conversation:** Update the system prompt to match your use case
+- **Add tools:** Connect your assistant to external APIs and databases  
+- **Configure models:** Try different speech and language models for better performance
+- **Scale with APIs:** Use Vapi's REST API to create assistants programmatically
+
+<Tip>
+Ready to integrate voice into your application? Check out the [Web integration guide](/quickstart/web-integration) to embed voice calls directly in your app.
+</Tip> 
