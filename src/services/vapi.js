@@ -77,6 +77,13 @@ class VapiService extends EventEmitter {
             this.ws.on('open', () => {
                 logger.info('Connected to VAPI WebSocket');
                 this.emit('open');
+
+                // Send a small buffer of silence to trigger VAPI to start sending audio
+                // 16kHz, 16-bit PCM, mono = 32000 bytes per second
+                // Send 100ms of silence (3200 bytes)
+                const silenceBuffer = Buffer.alloc(3200, 0);
+                logger.info('Sending initial silence buffer to trigger VAPI audio stream');
+                this.ws.send(silenceBuffer);
             });
 
             this.ws.on('message', (data, isBinary) => {
