@@ -7,13 +7,19 @@ const {
     createAudioResource,
     NoSubscriberBehavior,
     AudioPlayerStatus,
-    StreamType
+    StreamType,
+    EndBehaviorType
 } = require('@discordjs/voice');
+const { PassThrough } = require('stream');
 const logger = require('../utils/logger');
 const vapiService = require('./vapi');
 const prism = require('prism-media');
 
 class VoiceService {
+    constructor() {
+        this.streams = new Map(); // Map<guildId, { speaker: PassThrough, player: AudioPlayer }>
+    }
+
     /**
      * Join a voice channel
      * @param {VoiceChannel} channel - Discord voice channel
@@ -28,51 +34,72 @@ class VoiceService {
                 selfMute: false
             });
 
-            connection.on(VoiceConnectionStatus.Ready, () => {
+            connection.on(VoiceConnectionStatus.Ready, async () => {
                 logger.info(`Joined voice channel: ${channel.name}`);
 
-                // Play a welcome sound to establish audio stream
-                try {
-                    const player = createAudioPlayer({
-                        behaviors: {
-                            noSubscriber: NoSubscriberBehavior.Play,
+                // Setup audio player for VAPI output (Speaker)
+                const speakerStream = new PassThrough();
+                const player = createAudioPlayer({
+                    behaviors: {
+                        noSubscriber: NoSubscriberBehavior.Play,
+                    },
+                });
+
+                const resource = createAudioResource(speakerStream, {
+                    inputType: StreamType.Raw
+                });
+
+                player.play(resource);
+                connection.subscribe(player);
+
+                this.streams.set(channel.guild.id, { speaker: speakerStream, player });
+
+                // Handle VAPI audio events
+                const onVapiAudio = (buffer) => {
+                    speakerStream.write(buffer);
+                };
+
+                vapiService.on('audio', onVapiAudio);
+
+                // Handle VAPI close/error to cleanup
+                const onVapiClose = () => {
+                    this.leaveChannel(channel.guild.id);
+                };
+                vapiService.once('close', onVapiClose);
+                vapiService.once('error', onVapiClose);
+
+                // Setup audio receiver for Discord input (Microphone)
+                connection.receiver.speaking.on('start', (userId) => {
+                    const opusStream = connection.receiver.subscribe(userId, {
+                        end: {
+                            behavior: EndBehaviorType.AfterSilence,
+                            duration: 100,
                         },
                     });
 
-                    connection.subscribe(player);
-                    logger.info('Audio player subscribed to connection');
+                    // Decode Opus to PCM (48kHz, 1 channel)
+                    const decoder = new prism.opus.Decoder({ rate: 48000, channels: 1, frameSize: 960 });
 
-                    // Debug: Log all state changes
-                    player.on('stateChange', (oldState, newState) => {
-                        logger.info(`Audio player transitioned from ${oldState.status} to ${newState.status}`);
+                    opusStream.pipe(decoder);
+
+                    decoder.on('data', (pcmData) => {
+                        // Resample if necessary? VAPI usually handles 48k.
+                        // But if VAPI expects 16k, we might need to downsample.
+                        // For now, send 48k and see.
+                        vapiService.sendAudio(pcmData);
                     });
 
-                    player.on('error', error => {
-                        logger.error('Audio player error:', error);
+                    decoder.on('error', (err) => {
+                        logger.error(`Opus decoder error for user ${userId}:`, err);
                     });
+                });
 
-                    // Generate a 440Hz sine wave using FFmpeg
-                    // This rules out network issues with external URLs
-                    const args = [
-                        '-f', 'lavfi',
-                        '-i', 'sine=frequency=440:duration=3', // 3 seconds of 440Hz beep
-                        '-f', 's16le',
-                        '-ar', '48000',
-                        '-ac', '2'
-                    ];
-
-                    const ffmpeg = new prism.FFmpeg({ args });
-                    const resource = createAudioResource(ffmpeg, {
-                        inputType: StreamType.Raw
-                    });
-
-                    player.play(resource);
-                    logger.info('Playing generated test tone');
-
-                    // Trigger VAPI session
-                    vapiService.startCall(channel.id);
+                // Start VAPI call
+                try {
+                    await vapiService.startCall(channel.id);
                 } catch (error) {
-                    logger.error('Error setting up audio player:', error);
+                    logger.error('Failed to start VAPI call:', error);
+                    this.leaveChannel(channel.guild.id);
                 }
             });
 
@@ -82,11 +109,10 @@ class VoiceService {
                         entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
                         entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
                     ]);
-                    // Seems to be reconnecting to a new channel - ignore disconnect
                 } catch (error) {
-                    // Seems to be a real disconnect which SHOULDN'T be recovered from
                     connection.destroy();
                     logger.info(`Disconnected from voice channel: ${channel.name}`);
+                    this.cleanup(channel.guild.id);
                 }
             });
 
@@ -107,6 +133,20 @@ class VoiceService {
             connection.destroy();
             logger.info(`Left voice channel in guild: ${guildId}`);
         }
+        this.cleanup(guildId);
+    }
+
+    cleanup(guildId) {
+        const streamData = this.streams.get(guildId);
+        if (streamData) {
+            streamData.player.stop();
+            streamData.speaker.end();
+            this.streams.delete(guildId);
+        }
+        vapiService.stopCall();
+        vapiService.removeAllListeners('audio');
+        vapiService.removeAllListeners('close');
+        vapiService.removeAllListeners('error');
     }
 }
 
