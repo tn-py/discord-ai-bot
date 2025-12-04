@@ -72,11 +72,12 @@ class VapiService extends EventEmitter {
             this.ws.on('message', (data, isBinary) => {
                 if (isBinary) {
                     // Received binary audio data (PCM)
+                    logger.debug(`Received ${data.length} bytes of audio from VAPI`);
                     this.emit('audio', data);
                 } else {
                     try {
                         const message = JSON.parse(data.toString());
-                        logger.debug(`VAPI Message: ${JSON.stringify(message)}`);
+                        logger.info(`VAPI Message: ${JSON.stringify(message)}`);
 
                         if (message.type === 'audio') {
                             // Handle if audio comes as JSON (unlikely for raw stream but possible)
@@ -112,7 +113,10 @@ class VapiService extends EventEmitter {
      */
     sendAudio(buffer) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            logger.debug(`Sending ${buffer.length} bytes of audio to VAPI`);
             this.ws.send(buffer);
+        } else {
+            logger.warn(`Cannot send audio - WebSocket state: ${this.ws ? this.ws.readyState : 'null'}`);
         }
     }
 
