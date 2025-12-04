@@ -81,32 +81,6 @@ class VapiService extends EventEmitter {
                 // Send a small buffer of silence to trigger VAPI to start sending audio
                 // 16kHz, 16-bit PCM, mono = 32000 bytes per second
                 // Send 100ms of silence (3200 bytes)
-                const silenceBuffer = Buffer.alloc(3200, 0);
-                logger.info('Sending initial silence buffer to trigger VAPI audio stream');
-                this.ws.send(silenceBuffer);
-            });
-
-            this.ws.on('message', (data, isBinary) => {
-                if (isBinary) {
-                    // Received binary audio data (PCM)
-                    logger.debug(`Received ${data.length} bytes of audio from VAPI`);
-                    this.emit('audio', data);
-                } else {
-                    try {
-                        const message = JSON.parse(data.toString());
-                        logger.info(`VAPI Message: ${JSON.stringify(message)}`);
-
-                        if (message.type === 'audio') {
-                            // Handle if audio comes as JSON (unlikely for raw stream but possible)
-                        }
-                    } catch (error) {
-                        logger.error('Error parsing VAPI message:', error);
-                    }
-                }
-            });
-
-            this.ws.on('close', () => {
-                logger.info('VAPI WebSocket closed');
                 this.emit('close');
                 this.ws = null;
             });
