@@ -47,7 +47,7 @@ class VapiService extends EventEmitter {
             });
 
             const call = response.data;
-            logger.debug(`VAPI Call Response: ${JSON.stringify(call, null, 2)}`);
+            logger.info(`VAPI Call Response: ${JSON.stringify(call, null, 2)}`);
 
             // Extract WebSocket URL from transport.websocketCallUrl
             const webCallUrl =
@@ -55,6 +55,11 @@ class VapiService extends EventEmitter {
                 call.webCallUrl ||
                 call.websocketCallUrl ||
                 (call.monitor && call.monitor.listenUrl);
+
+            // Check if there's a separate listen URL
+            if (call.monitor && call.monitor.listenUrl) {
+                logger.info(`Monitor listenUrl found: ${call.monitor.listenUrl}`);
+            }
 
             if (!webCallUrl) {
                 logger.error(`Full VAPI Response: ${JSON.stringify(call, null, 2)}`);
